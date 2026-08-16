@@ -13,7 +13,7 @@ primeiro IPv4 do texto e grava em um arquivo de saída.
 |---|---|---|---|
 | Entrada | URL alvo | `--url` ou `GETIP_URL` | `https://192.168.10.1` |
 | Entrada | Id do elemento | `--element-id` | `TIPv4` |
-| Entrada | Ambiente | `LOG_FILE_PATH`, `LOG_LEVEL` | `/app/logs/get_ip.log` |
+| Entrada | Ambiente | `LOG_FILE_PATH`, `LOG_LEVEL` | `./data/get_ip.log` |
 | Saída | Arquivo de resultado | `TIPv4_element.txt` | `203.0.113.42` |
 | Saída | Log | `get_ip.log` | `2026-08-16 12:00:00 - INFO - IP Encontrado: 203.0.113.42` |
 
@@ -38,7 +38,8 @@ primeiro IPv4 do texto e grava em um arquivo de saída.
 
 O `get_ip.py` escrevia apenas o IPv4 em `TIPv4_element.txt` dentro do diretório
 definido por `dirname(LOG_FILE_PATH)` (padrão `/app/logs`). O `getip` preserva
-este contrato, incluindo o uso das variáveis `LOG_FILE_PATH` e `LOG_LEVEL`.
+este contrato, mas o diretório padrão passa a ser `./data` (ou o definido por
+`LOG_FILE_PATH`), mantendo o uso das variáveis `LOG_FILE_PATH` e `LOG_LEVEL`.
 
 ### Resolução de caminhos
 
@@ -57,7 +58,7 @@ $ curl -sk https://192.168.10.1 | grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}/...'
 
 $ ./getip
 2026-08-16 12:00:00 - INFO - IP Encontrado: 203.0.113.42
-$ cat /app/logs/TIPv4_element.txt
+$ cat ./data/TIPv4_element.txt
 203.0.113.42
 ```
 

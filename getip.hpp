@@ -4,7 +4,7 @@
 #include <string>
 
 #ifndef GETIP_VERSION
-#define GETIP_VERSION "1.0.0"
+#define GETIP_VERSION "1.0.1"
 #endif
 
 namespace getip

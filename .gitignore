@@ -5,6 +5,7 @@ getip-linux-*
 # Artefatos de execução
 TIPv4_element.txt
 get_ip.log
+/data/
 
 # Binários de teste
 tests/test_runner

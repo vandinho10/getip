@@ -4,14 +4,23 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-16
+
 ### Corrigido
 
-- Abort (exceção `filesystem_error`) quando o diretório de log padrão
-  (`/app/logs`) não é gravável no host: `--output-dir`/`--output-file` agora
-  definem também o log padrão (`--output-dir`/`get_ip.log`), e falhas ao
-  criar diretórios são tratadas como erro controlado, sem abortar.
+- Abort (exceção `filesystem_error`) quando o diretório de log padrão não é
+  gravável no host: `--output-dir`/`--output-file` agora definem também o log
+  padrão (`--output-dir`/`get_ip.log`), e falhas ao criar diretórios são
+  tratadas como erro controlado, sem abortar.
 - `--output-file` com diretório (`./ip`, `/tmp/x.txt`) passa a ser usado como
   caminho completo em vez de ser unido ao `--output-dir`.
+
+### Alterado
+
+- Diretório padrão de saída e log passa a ser `./data` (antes `/app/logs`).
+- Versão do binário: `1.0.1`.
+
+## [1.0.0] - 2026-08-16
 
 ### Added
 

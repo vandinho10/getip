@@ -281,9 +281,9 @@ void print_help(const char *prog)
         << "Opções:\n"
         << "  --url <URL>            Página a consultar (padrão: https://192.168.10.1)\n"
         << "  --element-id <ID>      Id do elemento HTML (padrão: TIPv4)\n"
-        << "  --output-dir <DIR>     Diretório de saída (padrão: dir de LOG_FILE_PATH ou /app/logs)\n"
+        << "  --output-dir <DIR>     Diretório de saída (padrão: ./data ou dir de LOG_FILE_PATH)\n"
         << "  --output-file <FILE>   Arquivo de saída (padrão: TIPv4_element.txt)\n"
-        << "  --log-file <FILE>      Arquivo de log (padrão: LOG_FILE_PATH ou /app/logs/get_ip.log)\n"
+        << "  --log-file <FILE>      Arquivo de log (padrão: ./data/get_ip.log ou LOG_FILE_PATH)\n"
         << "  --log-level <LVL>      DEBUG|INFO|WARNING|ERROR (padrão: INFO)\n"
         << "  --timeout <SEGUNDOS>   Timeout da requisição (padrão: 15)\n"
         << "  --verify-tls           Habilita verificação do certificado TLS (padrão: desabilitada)\n"
@@ -484,9 +484,9 @@ int run(const Config &cfg)
     apply_env(c);
 
     if (c.output_dir.empty())
-        c.output_dir = c.log_file.empty() ? "/app/logs" : dirname_of(c.log_file);
+        c.output_dir = c.log_file.empty() ? "./data" : dirname_of(c.log_file);
     if (c.output_dir.empty())
-        c.output_dir = "/app/logs";
+        c.output_dir = "./data";
     if (c.log_file.empty())
         c.log_file = (std::filesystem::path(c.output_dir) / "get_ip.log").string();
 

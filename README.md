@@ -21,7 +21,7 @@ instantânea.
 ## Compilação
 
 ```bash
-make              # build de release (otimizado, v1.0.0)
+make              # build de release (otimizado, v1.0.1)
 ```
 
 Compilação manual:
@@ -41,9 +41,9 @@ make sanitize     # AddressSanitizer + UndefinedBehaviorSanitizer
 ## Uso
 
 ```bash
-./getip                     # coleta de https://192.168.10.1 -> /app/logs/TIPv4_element.txt
+./getip                     # coleta de https://192.168.10.1 -> ./data/TIPv4_element.txt
 ./getip --help              # ajuda
-./getip --version           # getip v1.0.0
+./getip --version           # getip v1.0.1
 ./getip --url http://10.0.0.1 --output-dir ./out --log-level DEBUG
 ```
 
@@ -53,7 +53,7 @@ Opções principais:
 |---|---|---|
 | `--url` | `https://192.168.10.1` | Página a consultar |
 | `--element-id` | `TIPv4` | Id do elemento HTML |
-| `--output-dir` | dir de `LOG_FILE_PATH` ou `/app/logs` | Diretório de saída |
+| `--output-dir` | `./data` ou dir de `LOG_FILE_PATH` | Diretório de saída |
 | `--output-file` | `TIPv4_element.txt` | Arquivo de saída (sem diretório → dentro de `--output-dir`; com diretório → caminho completo) |
 | `--log-file` | `--output-dir`/`get_ip.log` (ou `LOG_FILE_PATH`) | Arquivo de log |
 | `--log-level` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
