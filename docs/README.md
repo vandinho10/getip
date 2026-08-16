@@ -40,6 +40,15 @@ O `get_ip.py` escrevia apenas o IPv4 em `TIPv4_element.txt` dentro do diretório
 definido por `dirname(LOG_FILE_PATH)` (padrão `/app/logs`). O `getip` preserva
 este contrato, incluindo o uso das variáveis `LOG_FILE_PATH` e `LOG_LEVEL`.
 
+### Resolução de caminhos
+
+- `--output-file` **sem** diretório é gravado dentro de `--output-dir`
+  (padrão: `TIPv4_element.txt` no diretório de log).
+- `--output-file` **com** diretório (`./ip`, `/tmp/x.txt`, `sub/ip.txt`) é
+  usado como caminho completo.
+- `--log-file` sem valor usa `--output-dir`/`get_ip.log` (ou `LOG_FILE_PATH`).
+- Falhas ao criar diretórios são tratadas como erro sem abortar o processo.
+
 Validação real contra o roteador (2026-08-16):
 
 ```

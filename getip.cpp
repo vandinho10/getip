@@ -93,7 +93,8 @@ public:
         min_level_ = level_from_string(level_name);
         if (!log_file.empty())
         {
-            std::filesystem::create_directories(std::filesystem::path(log_file).parent_path());
+            std::error_code ec;
+            std::filesystem::create_directories(std::filesystem::path(log_file).parent_path(), ec);
             file_.open(log_file, std::ios::out | std::ios::app);
         }
     }
@@ -482,21 +483,27 @@ int run(const Config &cfg)
     Config c = cfg;
     apply_env(c);
 
-    if (c.log_file.empty())
-        c.log_file = "/app/logs/get_ip.log";
     if (c.output_dir.empty())
-        c.output_dir = dirname_of(c.log_file);
+        c.output_dir = c.log_file.empty() ? "/app/logs" : dirname_of(c.log_file);
     if (c.output_dir.empty())
         c.output_dir = "/app/logs";
+    if (c.log_file.empty())
+        c.log_file = (std::filesystem::path(c.output_dir) / "get_ip.log").string();
+
+    const std::filesystem::path out_rel(c.output_file);
+    const std::string out_path = out_rel.has_parent_path()
+        ? c.output_file
+        : (std::filesystem::path(c.output_dir) / out_rel).string();
 
     Logger::instance().configure(c.log_level, c.log_file);
     Logger &log = Logger::instance();
 
     std::error_code ec;
-    std::filesystem::create_directories(c.output_dir, ec);
+    std::filesystem::create_directories(std::filesystem::path(out_path).parent_path(), ec);
     if (ec)
     {
-        log.error("falha ao criar o diretório de saída '" + c.output_dir + "': " + ec.message());
+        log.error("falha ao criar o diretório de saída '" +
+                  std::filesystem::path(out_path).parent_path().string() + "': " + ec.message());
         return EXIT_FAILURE;
     }
 
@@ -527,7 +534,6 @@ int run(const Config &cfg)
         return EXIT_FAILURE;
     }
 
-    const std::string out_path = (std::filesystem::path(c.output_dir) / c.output_file).string();
     if (!write_file(out_path, ip, error))
     {
         log.error(error);

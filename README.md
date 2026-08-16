@@ -54,8 +54,8 @@ Opções principais:
 | `--url` | `https://192.168.10.1` | Página a consultar |
 | `--element-id` | `TIPv4` | Id do elemento HTML |
 | `--output-dir` | dir de `LOG_FILE_PATH` ou `/app/logs` | Diretório de saída |
-| `--output-file` | `TIPv4_element.txt` | Arquivo de saída |
-| `--log-file` | `LOG_FILE_PATH` ou `/app/logs/get_ip.log` | Arquivo de log |
+| `--output-file` | `TIPv4_element.txt` | Arquivo de saída (sem diretório → dentro de `--output-dir`; com diretório → caminho completo) |
+| `--log-file` | `--output-dir`/`get_ip.log` (ou `LOG_FILE_PATH`) | Arquivo de log |
 | `--log-level` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 | `--timeout` | `15` (s) | Timeout da requisição |
 | `--verify-tls` | desabilitada | Habilita verificação do certificado TLS |

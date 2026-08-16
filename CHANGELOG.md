@@ -4,6 +4,15 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+### Corrigido
+
+- Abort (exceção `filesystem_error`) quando o diretório de log padrão
+  (`/app/logs`) não é gravável no host: `--output-dir`/`--output-file` agora
+  definem também o log padrão (`--output-dir`/`get_ip.log`), e falhas ao
+  criar diretórios são tratadas como erro controlado, sem abortar.
+- `--output-file` com diretório (`./ip`, `/tmp/x.txt`) passa a ser usado como
+  caminho completo em vez de ser unido ao `--output-dir`.
+
 ### Added
 
 - Utilitário C++17 `getip` que substitui o legado `get_ip.py` (Python +
