@@ -2,6 +2,10 @@
 /getip
 getip-linux-*
 
+# Artefatos de execução
+TIPv4_element.txt
+get_ip.log
+
 # Binários de teste
 tests/test_runner
 tests/test_runner_san
