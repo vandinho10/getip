@@ -1,0 +1,13 @@
+getip — NOTICE
+
+Copyright (c) 2026 Vanderson Oliveira.
+
+Este projeto é licenciado sob a MIT License (ver LICENSE).
+
+Third-party notices
+===================
+
+Este projeto vincula dinamicamente a libcurl e às bibliotecas TLS (OpenSSL)
+fornecidas pelo sistema operacional Debian 12. Avisos de terceiros a preservar:
+- curl: https://curl.se/docs/copyright.html
+- OpenSSL: https://www.openssl.org/source/license.html

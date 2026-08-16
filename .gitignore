@@ -1,0 +1,18 @@
+# Binário compilado
+/getip
+getip-linux-*
+
+# Binários de teste
+tests/test_runner
+tests/test_runner_san
+
+# Arquivos de objeto
+*.o
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Pastas de IDEs/Editores
+.vscode/
+.idea/
