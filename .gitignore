@@ -1,6 +1,6 @@
 # Binário compilado
 /getip
-getip-linux-*
+getip-linux-x86_64
 
 # Artefatos de execução
 TIPv4_element.txt
