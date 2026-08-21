@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-linux-gnu
+            arch: x86_64
+            cc: x86_64-linux-gnu-g++
+            packages: g++-x86-64-linux-gnu libcurl4-openssl-dev:amd64
+            extra: dpkg --add-architecture amd64
+          - target: aarch64-linux-gnu
+            arch: aarch64
+            cc: aarch64-linux-gnu-g++
+            packages: g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64
+            extra: dpkg --add-architecture arm64
+          - target: arm-linux-gnueabihf
+            arch: arm32
+            cc: arm-linux-gnueabihf-g++
+            packages: g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf
+            extra: dpkg --add-architecture armhf
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cross-compiler
+        run: |
+          sudo ${{ matrix.extra }}
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ${{ matrix.packages }}
+
+      - name: Build
+        run: |
+          VERSION=$(grep "^VERSION" Makefile | cut -d: -f2 | tr -d ' ')
+          ${{ matrix.cc }} -std=c++17 -Wall -Wextra -Wpedantic -O2 \
+            -DGETIP_VERSION=\"$VERSION\" \
+            -o getip-linux-${{ matrix.arch }} \
+            main.cpp getip.cpp -lcurl
+          file getip-linux-${{ matrix.arch }}
+          ls -lh getip-linux-${{ matrix.arch }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: getip-linux-${{ matrix.arch }}
+          path: getip-linux-${{ matrix.arch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
