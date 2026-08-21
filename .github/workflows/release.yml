@@ -13,38 +13,35 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: x86_64-linux-gnu
-            arch: x86_64
-            cc: x86_64-linux-gnu-g++
-            packages: g++-x86-64-linux-gnu libcurl4-openssl-dev:amd64
-            extra: dpkg --add-architecture amd64
-          - target: aarch64-linux-gnu
-            arch: aarch64
-            cc: aarch64-linux-gnu-g++
-            packages: g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64
-            extra: dpkg --add-architecture arm64
-          - target: arm-linux-gnueabihf
-            arch: arm32
-            cc: arm-linux-gnueabihf-g++
-            packages: g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf
-            extra: dpkg --add-architecture armhf
+          - arch: x86_64
+            platform: linux/amd64
+            pkg: x86_64-linux-gnu
+          - arch: aarch64
+            platform: linux/arm64
+            pkg: aarch64-linux-gnu
+          - arch: arm32
+            platform: linux/arm/v7
+            pkg: arm-linux-gnueabihf
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install cross-compiler
-        run: |
-          sudo ${{ matrix.extra }}
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ${{ matrix.packages }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Build
         run: |
-          VERSION=$(grep "^VERSION" Makefile | cut -d: -f2 | tr -d ' ')
-          ${{ matrix.cc }} -std=c++17 -Wall -Wextra -Wpedantic -O2 \
-            -DGETIP_VERSION=\"$VERSION\" \
-            -o getip-linux-${{ matrix.arch }} \
-            main.cpp getip.cpp -lcurl
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v "$(pwd):/src" -w /src \
+            debian:bookworm-slim \
+            bash -c '
+              apt-get update -qq &&
+              apt-get install -y -qq g++ make libcurl4-openssl-dev > /dev/null 2>&1 &&
+              VERSION=$(grep "^VERSION" Makefile | cut -d: -f2 | tr -d " ") &&
+              make all VERSION=$VERSION 2>&1 &&
+              file getip &&
+              cp getip /src/getip-linux-${{ matrix.arch }}
+            '
           file getip-linux-${{ matrix.arch }}
           ls -lh getip-linux-${{ matrix.arch }}
 
