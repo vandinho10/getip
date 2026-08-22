@@ -212,36 +212,42 @@ bool parse_args(int argc, char *argv[], Config &cfg)
             if (!need_value())
                 return false;
             cfg.url = argv[++i];
+            cfg.cli_url = true;
         }
         else if (arg == "--element-id")
         {
             if (!need_value())
                 return false;
             cfg.element_id = argv[++i];
+            cfg.cli_element_id = true;
         }
         else if (arg == "--output-dir")
         {
             if (!need_value())
                 return false;
             cfg.output_dir = argv[++i];
+            cfg.cli_output_dir = true;
         }
         else if (arg == "--output-file")
         {
             if (!need_value())
                 return false;
             cfg.output_file = argv[++i];
+            cfg.cli_output_file = true;
         }
         else if (arg == "--log-file")
         {
             if (!need_value())
                 return false;
             cfg.log_file = argv[++i];
+            cfg.cli_log_file = true;
         }
         else if (arg == "--log-level")
         {
             if (!need_value())
                 return false;
             cfg.log_level = argv[++i];
+            cfg.cli_log_level = true;
         }
         else if (arg == "--timeout")
         {
@@ -256,10 +262,12 @@ bool parse_args(int argc, char *argv[], Config &cfg)
                 return false;
             }
             cfg.timeout_ms = seconds * 1000;
+            cfg.cli_timeout = true;
         }
         else if (arg == "--verify-tls")
         {
             cfg.verify_tls = true;
+            cfg.cli_verify_tls = true;
         }
         else
         {
