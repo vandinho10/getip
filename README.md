@@ -21,13 +21,13 @@ instantânea.
 ## Compilação
 
 ```bash
-make              # build de release (otimizado, v1.0.1)
+make              # build de release (otimizado, v1.1.0)
 ```
 
 Compilação manual:
 
 ```bash
-g++ -std=c++17 -O2 -o getip main.cpp getip.cpp -lcurl
+g++ -std=c++17 -O2 -o getip main.cpp getip.cpp config.cpp -lcurl
 ```
 
 ## Verificação, Testes e Sanitizers
@@ -43,7 +43,7 @@ make sanitize     # AddressSanitizer + UndefinedBehaviorSanitizer
 ```bash
 ./getip                     # coleta de https://192.168.10.1 -> ./data/TIPv4_element.txt
 ./getip --help              # ajuda
-./getip --version           # getip v1.0.1
+./getip --version           # getip v1.1.0
 ./getip --url http://10.0.0.1 --output-dir ./out --log-level DEBUG
 ```
 
@@ -65,6 +65,37 @@ Variáveis de ambiente compatíveis com o legado:
 - `LOG_FILE_PATH` — define o arquivo de log e o diretório de saída padrão.
 - `LOG_LEVEL` — nível de log.
 - `GETIP_URL` — URL alvo alternativa.
+
+## Configuração Persistente
+
+Salve suas preferências uma vez e rode `getip` sem flags — no estilo do
+`git config`.
+
+```bash
+# Global (padrão): vale para qualquer diretório
+getip config set url https://192.168.10.1
+getip config set timeout 30
+getip config set verify-tls true
+getip config list                 # lista a visão efetiva com origem [global]/[local]
+getip config get url              # imprime os valores da chave
+getip config unset timeout        # remove a chave
+getip config path                 # mostra os caminhos global e local
+
+# Local: grava ./.getip.conf no projeto atual (commitável)
+getip config --local set element-id TIPv4
+```
+
+**Precedência:** linha de comando > `.getip.conf` local > config global >
+defaults. Opções não informadas na CLI são preenchidas pela config.
+
+Formato do arquivo (`chave=valor`, uma linha por valor):
+
+```ini
+# ~/.config/getip/config
+url=https://192.168.10.1
+timeout=30
+log-level=INFO
+```
 
 ## Compatibilidade com o legado
 

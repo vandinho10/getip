@@ -211,6 +211,306 @@ TEST("parse_args: timeout inválido")
     CHECK(!getip::parse_args(3, argv, cfg));
 }
 
+// --- configuração persistente ------------------------------------------------
+
+#include <chrono>
+#include <cstdio>
+#include <sstream>
+#include <vector>
+
+namespace fs = std::filesystem;
+
+struct TempDirCfg
+{
+    fs::path dir;
+    TempDirCfg()
+    {
+        const auto tick =
+            std::chrono::steady_clock::now().time_since_epoch().count();
+        dir = fs::temp_directory_path() / ("getip_test_tmp_" + std::to_string(tick));
+        fs::create_directories(dir);
+    }
+    ~TempDirCfg() { std::error_code ec; fs::remove_all(dir, ec); }
+};
+
+static void escrever_cfg(const fs::path &p, const std::string &conteudo)
+{
+    std::ofstream f(p);
+    f << conteudo;
+}
+
+static int rodar_config(std::vector<std::string> args)
+{
+    std::vector<char *> argv;
+    argv.push_back(const_cast<char *>("getip"));
+    for (auto &s : args)
+        argv.push_back(const_cast<char *>(s.c_str()));
+    return getip::comando_config(static_cast<int>(argv.size()), argv.data());
+}
+
+TEST("NivelConfig: define/busca/acrescenta/remove")
+{
+    getip::NivelConfig n;
+    CHECK(n.vazia());
+    CHECK(n.busca("url") == nullptr);
+
+    n.define("url", {"https://10.0.0.1"});
+    CHECK(!n.vazia());
+    const auto *u = n.busca("url");
+    CHECK(u != nullptr);
+    if (u == nullptr)
+        return;
+    CHECK(u->size() == 1 && (*u)[0] == "https://10.0.0.1");
+
+    n.acrescenta("log-level", {"DEBUG"});
+    n.define("url", {"http://x"});
+    u = n.busca("url");
+    if (u != nullptr)
+        CHECK(u->size() == 1 && (*u)[0] == "http://x");
+
+    n.remove("url");
+    n.remove("inexistente"); // sem efeito
+    CHECK(n.busca("url") == nullptr);
+}
+
+TEST("chave_valida aceita exatamente as 8 chaves")
+{
+    CHECK(getip::chave_valida("url"));
+    CHECK(getip::chave_valida("element-id"));
+    CHECK(getip::chave_valida("output-dir"));
+    CHECK(getip::chave_valida("output-file"));
+    CHECK(getip::chave_valida("log-file"));
+    CHECK(getip::chave_valida("log-level"));
+    CHECK(getip::chave_valida("timeout"));
+    CHECK(getip::chave_valida("verify-tls"));
+    CHECK(!getip::chave_valida("outra"));
+    CHECK(!getip::chave_valida(""));
+}
+
+TEST("valor_bool interpreta variantes e cai no padrao")
+{
+    CHECK(getip::valor_bool("true", false));
+    CHECK(getip::valor_bool("TRUE", false));
+    CHECK(getip::valor_bool(" 1 ", true));
+    CHECK(getip::valor_bool("sim", false));
+    CHECK(!getip::valor_bool("false", true));
+    CHECK(!getip::valor_bool("off", true));
+    CHECK(!getip::valor_bool("nao", true));
+    CHECK(getip::valor_bool("lixo", true));   // padrão
+    CHECK(!getip::valor_bool("lixo", false)); // padrão
+}
+
+TEST("caminho_config_global respeita GETIP_CONFIG_HOME")
+{
+#ifdef _WIN32
+    _putenv_s("GETIP_CONFIG_HOME", "C:\\sandbox");
+#else
+    setenv("GETIP_CONFIG_HOME", "/sandbox", 1);
+#endif
+    const fs::path p = getip::caminho_config_global();
+#ifdef _WIN32
+    CHECK(p == fs::path("C:\\sandbox") / "getip" / "config.txt");
+#else
+    CHECK(p == fs::path("/sandbox") / "getip" / "config");
+#endif
+#ifdef _WIN32
+    _putenv_s("GETIP_CONFIG_HOME", "");
+#else
+    unsetenv("GETIP_CONFIG_HOME");
+#endif
+}
+
+TEST("descobrir_config_local sobe a hierarquia ate encontrar .getip.conf")
+{
+    TempDirCfg raiz;
+    fs::create_directories(raiz.dir / "a" / "b");
+    escrever_cfg(raiz.dir / ".getip.conf", "url=http://roteador\n");
+
+    CHECK(!getip::descobrir_config_local(raiz.dir / "a" / "b").empty());
+    CHECK(getip::descobrir_config_local(raiz.dir / "a" / "b").filename() == ".getip.conf");
+    CHECK(getip::descobrir_config_local(raiz.dir).filename() == ".getip.conf");
+
+    TempDirCfg sem_config;
+    CHECK(getip::descobrir_config_local(sem_config.dir).empty());
+}
+
+TEST("carregar_nivel: formato chave=valor, comentarios e lixo ignorado")
+{
+    TempDirCfg td;
+    escrever_cfg(td.dir / "cfg",
+                 "# comentario\n"
+                 "\n"
+                 "timeout=30\n"
+                 " log-level = DEBUG \n"
+                 "sem-igual\n"
+                 "desconhecida=x\n"
+                 "verify-tls=true\n");
+
+    std::ostringstream vazio;
+    auto *antigo = std::cerr.rdbuf(vazio.rdbuf());
+    const getip::NivelConfig n = getip::carregar_nivel(td.dir / "cfg");
+    std::cerr.rdbuf(antigo);
+
+    const auto *t = n.busca("timeout");
+    CHECK(t != nullptr);
+    if (t == nullptr)
+        return;
+    CHECK((*t)[0] == "30");
+
+    const auto *l = n.busca("log-level");
+    CHECK(l != nullptr);
+    if (l == nullptr)
+        return;
+    CHECK((*l)[0] == "DEBUG");
+
+    CHECK(n.busca("desconhecida") == nullptr);
+    const auto *v = n.busca("verify-tls");
+    CHECK(v != nullptr);
+    if (v != nullptr)
+        CHECK(getip::valor_bool((*v)[0], false) == true);
+}
+
+TEST("salvar/carregar roundtrip deterministico com valor contendo '='")
+{
+    TempDirCfg td;
+    getip::NivelConfig n;
+    n.define("url", {"https://r/?a=b"});
+    n.define("timeout", {"45"});
+    CHECK(getip::salvar_nivel(td.dir / "cfg", n));
+
+    std::ifstream in(td.dir / "cfg");
+    const std::string bruto((std::istreambuf_iterator<char>(in)),
+                            std::istreambuf_iterator<char>());
+    CHECK(bruto.find("url=https://r/?a=b") != std::string::npos);
+    CHECK(bruto.find("# getip") != std::string::npos);
+
+    const getip::NivelConfig lido = getip::carregar_nivel(td.dir / "cfg");
+    // chaves gravadas em ordem alfabetica: timeout antes de url
+    CHECK(bruto.find("timeout=") < bruto.find("url="));
+}
+
+TEST("mesclar_niveis: local sobrepoe global por chave inteira")
+{
+    getip::NivelConfig g, l;
+    g.define("url", {"https://global"});
+    g.define("timeout", {"15"});
+    l.define("url", {"https://local"});
+
+    const getip::NivelConfig m = getip::mesclar_niveis(g, l);
+    const auto *u = m.busca("url");
+    CHECK(u != nullptr);
+    if (u == nullptr)
+        return;
+    CHECK(u->size() == 1 && (*u)[0] == "https://local");
+    const auto *t = m.busca("timeout");
+    CHECK(t != nullptr);
+    if (t == nullptr)
+        return;
+    CHECK((*t)[0] == "15");
+}
+
+TEST("aplicar_config: preenche apenas opcoes ausentes na CLI")
+{
+    char *argv[] = {const_cast<char *>("getip"),
+                    const_cast<char *>("--url"), const_cast<char *>("http://cli"),
+                    const_cast<char *>("--verify-tls")};
+    getip::Config cfg;
+    CHECK(getip::parse_args(4, argv, cfg));
+
+    getip::NivelConfig efetivo;
+    efetivo.define("url", {"https://da-config"});   // ignorado: CLI vence
+    efetivo.define("element-id", {"Tv6LLA"});       // aplicado
+    efetivo.define("timeout", {"60"});              // aplicado
+    efetivo.define("verify-tls", {"false"});        // ignorado: CLI vence
+    getip::aplicar_config(cfg, efetivo);
+
+    CHECK(cfg.url == "http://cli" && cfg.cli_url);
+    CHECK(cfg.element_id == "Tv6LLA");
+    CHECK(cfg.timeout_ms == 60000);
+    CHECK(cfg.verify_tls); // flag da CLI permanece
+    CHECK(cfg.log_level == "INFO");
+}
+
+TEST("aplicar_config: timeout invalido na config e ignorado com aviso")
+{
+    getip::Config cfg;
+    getip::NivelConfig efetivo;
+    efetivo.define("timeout", {"abc"});
+    std::ostringstream vazio;
+    auto *antigo = std::cerr.rdbuf(vazio.rdbuf());
+    getip::aplicar_config(cfg, efetivo);
+    std::cerr.rdbuf(antigo);
+    CHECK(cfg.timeout_ms == 15000); // mantém o padrão
+}
+
+TEST("comando_config: ciclo set -> get -> list -> unset em escopo global sandbox")
+{
+#ifdef _WIN32
+    TempDirCfg td;
+    std::string home = td.dir.string();
+    _putenv_s("GETIP_CONFIG_HOME", home.c_str());
+#else
+    TempDirCfg td;
+    setenv("GETIP_CONFIG_HOME", td.dir.string().c_str(), 1);
+#endif
+
+    CHECK(rodar_config({"config", "set", "url", "https://roteador.local"}) == EXIT_SUCCESS);
+    CHECK(fs::exists(getip::caminho_config_global()));
+
+    CHECK(rodar_config({"config", "get", "url"}) == EXIT_SUCCESS);
+    CHECK(rodar_config({"config", "list"}) == EXIT_SUCCESS);
+    CHECK(rodar_config({"config", "path"}) == EXIT_SUCCESS);
+    CHECK(rodar_config({"config", "get", "inexistente"}) == EXIT_FAILURE);
+    CHECK(rodar_config({"config", "set", "chave_mala", "x"}) == EXIT_FAILURE);
+    CHECK(rodar_config({"config", "verbo_falso"}) == EXIT_FAILURE);
+
+    CHECK(rodar_config({"config", "unset", "url"}) == EXIT_SUCCESS);
+    CHECK(rodar_config({"config", "get", "url"}) == EXIT_FAILURE);
+
+#ifdef _WIN32
+    _putenv_s("GETIP_CONFIG_HOME", "");
+#else
+    unsetenv("GETIP_CONFIG_HOME");
+#endif
+}
+
+TEST("comando_config: --local grava ./.getip.conf no diretorio atual")
+{
+#ifdef _WIN32
+    TempDirCfg td;
+    std::string home = td.dir.string();
+    _putenv_s("GETIP_CONFIG_HOME", home.c_str());
+#else
+    TempDirCfg td;
+    setenv("GETIP_CONFIG_HOME", td.dir.string().c_str(), 1);
+#endif
+
+    const fs::path original = fs::current_path();
+    std::error_code ec;
+    fs::current_path(td.dir, ec);
+    if (ec)
+        return;
+
+    CHECK(rodar_config({"config", "--local", "set", "log-level", "DEBUG"}) == EXIT_SUCCESS);
+    CHECK(fs::exists(td.dir / ".getip.conf"));
+
+    const getip::NivelConfig lido = getip::carregar_nivel(td.dir / ".getip.conf");
+    const auto *v = lido.busca("log-level");
+    CHECK(v != nullptr);
+    if (v == nullptr)
+        return;
+    CHECK((*v)[0] == "DEBUG");
+    CHECK(getip::descobrir_config_local(td.dir) == td.dir / ".getip.conf");
+
+    fs::current_path(original, ec);
+
+#ifdef _WIN32
+    _putenv_s("GETIP_CONFIG_HOME", "");
+#else
+    unsetenv("GETIP_CONFIG_HOME");
+#endif
+}
+
 int main()
 {
     return tests::run_all();

@@ -4,6 +4,31 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-22
+
+### Adicionado
+
+- **Configuração persistente** (estilo `git config`): subcomando `getip config`
+  com verbos `list` (padrão), `get`, `set`, `add`, `unset` e `path`, escopos
+  `--global` (padrão) e `--local`.
+- Dois níveis de arquivo: global em
+  `$XDG_CONFIG_HOME/getip/config` (`%APPDATA%\getip\config.txt` no Windows)
+  e local `.getip.conf` descoberto subindo a hierarquia de diretórios a partir
+  do cwd (commitável por design; oculto também no Windows via atributo hidden).
+- Precedência: **CLI > local > global > defaults**. Opções não fornecidas na
+  CLI são preenchidas pela config.
+- Chaves suportadas: `url`, `element-id`, `output-dir`, `output-file`,
+  `log-file`, `log-level`, `timeout`, `verify-tls`.
+- Gravação atômica (tmp + rename), formato `chave=valor` (uma linha por valor,
+  comentários com `#`), avisos para linhas/chaves inválidas.
+- Variável `GETIP_CONFIG_HOME` para redirecionar o nível global (sandbox/testes).
+- 12 novos testes (roundtrip, precedência, walk-up, ciclo set→get→unset,
+  `--local`, timeout inválido etc.).
+
+### Alterado
+
+- Versão do binário: `1.1.0`.
+
 ## [1.0.1] - 2026-08-16
 
 ### Corrigido
