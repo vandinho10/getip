@@ -4,6 +4,24 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-22
+
+### Adicionado
+
+- Suporte a **Windows**: binários estáticos `getip-windows-amd64.exe` e
+  `getip-windows-x86.exe` via cross-compile mingw-w64, zero dependências em
+  runtime. O transporte HTTP passa a ser duplo: **WinHTTP nativo** no Windows
+  (com os mesmos comportamentos do curl: redirecionamentos seguidos,
+  `--verify-tls` equivalente ao `curl -k`, timeouts por requisição) e
+  **libcurl** nos demais sistemas — sem mudanças de contrato na saída.
+- CI: matriz de release estendida com os dois alvos Windows (5 artefatos).
+
+### Alterado
+
+- `Makefile`: variável `TARGET_OS` com linkagem estática e `-lwinhttp` no
+  Windows; `clean` remove também o `.exe` gerado pelo ld PE.
+- Versão do binário: `1.2.0`.
+
 ## [1.1.0] - 2026-08-22
 
 ### Adicionado

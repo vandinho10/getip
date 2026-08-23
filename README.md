@@ -16,18 +16,22 @@ instantânea.
 ## Requisitos
 
 - Compilador `g++` com suporte a **C++17**.
-- `libcurl` para desenvolvimento (`libcurl4-openssl-dev` no Debian).
+- POSIX: `libcurl` para desenvolvimento (`libcurl4-openssl-dev` no Debian).
+- Windows: nada além do mingw-w64 — transporte **WinHTTP nativo**, binário 100% estático.
 
 ## Compilação
 
 ```bash
-make              # build de release (otimizado, v1.1.0)
+make              # build de release (otimizado, v1.2.0)
+make TARGET_OS=Windows_NT CXX=x86_64-w64-mingw32-g++-posix   # Windows (mingw)
 ```
 
 Compilação manual:
 
 ```bash
-g++ -std=c++17 -O2 -o getip main.cpp getip.cpp config.cpp -lcurl
+g++ -std=c++17 -O2 -o getip main.cpp getip.cpp config.cpp -lcurl                    # Linux
+x86_64-w64-mingw32-g++-posix -std=c++17 -O2 -static -o getip.exe \
+  main.cpp getip.cpp config.cpp -lwinhttp                                          # Windows
 ```
 
 ## Verificação, Testes e Sanitizers
@@ -43,7 +47,7 @@ make sanitize     # AddressSanitizer + UndefinedBehaviorSanitizer
 ```bash
 ./getip                     # coleta de https://192.168.10.1 -> ./data/TIPv4_element.txt
 ./getip --help              # ajuda
-./getip --version           # getip v1.1.0
+./getip --version           # getip v1.2.0
 ./getip --url http://10.0.0.1 --output-dir ./out --log-level DEBUG
 ```
 
