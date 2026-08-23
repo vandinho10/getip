@@ -1,6 +1,8 @@
 # Binário compilado
 /getip
 getip-linux-x86_64
+getip.exe
+getip-windows-*.exe
 
 # Artefatos de execução
 TIPv4_element.txt
