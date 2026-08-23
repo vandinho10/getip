@@ -4,11 +4,22 @@ WARN     := -Wall -Wextra -Wpedantic
 OPTFLAGS := -O2
 DBGFLAGS := -O0 -g
 
-VERSION  := 1.1.0
+VERSION  := 1.2.0
 TARGET   := getip
 TESTBIN  := tests/test_runner
 TESTBIN_SAN := tests/test_runner_san
-LIBS     := -lcurl
+
+# Alvo do sistema: alvo nativo por padrao; passe TARGET_OS=Windows_NT ao
+# compilar com mingw-w64 (x86_64-w64-mingw32-g++ / i686-w64-mingw32-g++).
+TARGET_OS ?= $(shell uname -s)
+
+# Windows (MinGW): binario 100% estatico com transporte WinHTTP nativo.
+# POSIX: transporte libcurl dinamico (libcurl4-openssl-dev).
+ifeq ($(TARGET_OS),Windows_NT)
+  LIBS := -static -static-libgcc -static-libstdc++ -lwinhttp
+else
+  LIBS := -lcurl
+endif
 
 CXXFLAGS := $(STD) $(WARN)
 
@@ -44,5 +55,5 @@ install: $(TARGET)
 	install -m 0755 $(TARGET) /usr/local/bin/$(TARGET)
 
 clean:
-	rm -f $(TARGET) $(TESTBIN) $(TESTBIN_SAN)
+	rm -f $(TARGET) $(TARGET).exe $(TESTBIN) $(TESTBIN_SAN)
 	rm -rf getip_test_tmp_*

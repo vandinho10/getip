@@ -1,6 +1,12 @@
 #include "getip.hpp"
 
+#ifndef _WIN32
 #include <curl/curl.h>
+#else
+#include <windows.h>
+#include <winhttp.h>
+#include <cwchar>
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -28,10 +34,10 @@ namespace
 
 enum class Level
 {
-    DEBUG = 0,
-    INFO = 1,
-    WARNING = 2,
-    ERROR = 3
+    Debug = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3
 };
 
 Level level_from_string(const std::string &name)
@@ -40,25 +46,25 @@ Level level_from_string(const std::string &name)
     std::transform(upper.begin(), upper.end(), upper.begin(),
                    [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
     if (upper == "DEBUG")
-        return Level::DEBUG;
+        return Level::Debug;
     if (upper == "WARNING" || upper == "WARN")
-        return Level::WARNING;
+        return Level::Warning;
     if (upper == "ERROR")
-        return Level::ERROR;
-    return Level::INFO;
+        return Level::Error;
+    return Level::Info;
 }
 
 std::string level_to_string(Level lvl)
 {
     switch (lvl)
     {
-    case Level::DEBUG:
+    case Level::Debug:
         return "DEBUG";
-    case Level::INFO:
+    case Level::Info:
         return "INFO";
-    case Level::WARNING:
+    case Level::Warning:
         return "WARNING";
-    case Level::ERROR:
+    case Level::Error:
         return "ERROR";
     }
     return "INFO";
@@ -111,15 +117,15 @@ public:
             file_ << line << "\n" << std::flush;
     }
 
-    void debug(const std::string &msg) { log(Level::DEBUG, msg); }
-    void info(const std::string &msg) { log(Level::INFO, msg); }
-    void warning(const std::string &msg) { log(Level::WARNING, msg); }
-    void error(const std::string &msg) { log(Level::ERROR, msg); }
+    void debug(const std::string &msg) { log(Level::Debug, msg); }
+    void info(const std::string &msg) { log(Level::Info, msg); }
+    void warning(const std::string &msg) { log(Level::Warning, msg); }
+    void error(const std::string &msg) { log(Level::Error, msg); }
 
 private:
     std::mutex mtx_;
     std::ofstream file_;
-    Level min_level_ = Level::INFO;
+    Level min_level_ = Level::Info;
 };
 
 // ---------------------------------------------------------------------------
@@ -159,12 +165,14 @@ size_t find_tag_close(const std::string &html, size_t tag_start)
     return std::string::npos;
 }
 
+#ifndef _WIN32
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
     const size_t total = size * nmemb;
     static_cast<std::string *>(userdata)->append(ptr, total);
     return total;
 }
+#endif
 
 std::string dirname_of(const std::string &path)
 {
@@ -307,8 +315,164 @@ void print_version(const char *prog)
 }
 
 // ---------------------------------------------------------------------------
-// HTTP (libcurl).
+// HTTP: WinHTTP nativo no Windows; libcurl nos demais sistemas.
 // ---------------------------------------------------------------------------
+
+#ifdef _WIN32
+
+namespace
+{
+
+std::wstring utf8_para_wide(const std::string &s)
+{
+    const int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
+    std::wstring w(static_cast<size_t>(n > 0 ? n : 1), L'\0');
+    if (n > 0)
+        MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &w[0], n);
+    w.resize(w.find(L'\0') == std::wstring::npos ? w.size() : w.find(L'\0'));
+    return w;
+}
+
+} // namespace
+
+std::string fetch_page(const Config &cfg, std::string &error)
+{
+    // Decodifica a URL em componentes (host, porta, caminho, esquema).
+    URL_COMPONENTS uc = {};
+    uc.dwStructSize = sizeof(uc);
+    wchar_t whost[256] = L"";
+    wchar_t wpath[2048] = L"";
+    uc.lpszHostName = whost;
+    uc.dwHostNameLength = 255;
+    uc.lpszUrlPath = wpath;
+    uc.dwUrlPathLength = 2047;
+
+    const std::wstring wurl = utf8_para_wide(cfg.url);
+    if (!WinHttpCrackUrl(wurl.c_str(), static_cast<DWORD>(wurl.size()), 0, &uc))
+    {
+        error = "URL invalida: " + cfg.url;
+        return {};
+    }
+    const bool https = (uc.nScheme == INTERNET_SCHEME_HTTPS);
+
+    std::wstring ua(L"getip/");
+    for (const char *v = GETIP_VERSION; *v != '\0'; ++v)
+        ua += static_cast<wchar_t>(*v);
+
+    HINTERNET sess = WinHttpOpen(ua.c_str(), WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                                 WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    if (sess == nullptr)
+    {
+        error = "WinHTTP: falha ao abrir a sessao (" +
+                std::to_string(GetLastError()) + ")";
+        return {};
+    }
+
+    const DWORD timeout_ms = static_cast<DWORD>(cfg.timeout_ms);
+    WinHttpSetTimeouts(sess, 0, timeout_ms, timeout_ms, timeout_ms);
+
+    HINTERNET conn = WinHttpConnect(sess, whost, uc.nPort, 0);
+    if (conn == nullptr)
+    {
+        const std::string host(whost, whost + wcslen(whost));
+        error = "WinHTTP: falha na conexao com " + host +
+                " (" + std::to_string(GetLastError()) + ")";
+        WinHttpCloseHandle(sess);
+        return {};
+    }
+
+    const DWORD flags = https ? WINHTTP_FLAG_SECURE : 0;
+    HINTERNET req = WinHttpOpenRequest(conn, L"GET",
+                                       wpath[0] != L'\0' ? wpath : L"/",
+                                       nullptr, WINHTTP_NO_REFERER,
+                                       WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+    if (req == nullptr)
+    {
+        error = "WinHTTP: falha ao criar a requisicao (" +
+                std::to_string(GetLastError()) + ")";
+        WinHttpCloseHandle(conn);
+        WinHttpCloseHandle(sess);
+        return {};
+    }
+
+    // Segue redirecionamentos como o curl fazia (FOLLOWLOCATION).
+    DWORD politica_redirect = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+    WinHttpSetOption(req, WINHTTP_OPTION_REDIRECT_POLICY,
+                     &politica_redirect, sizeof(politica_redirect));
+
+    if (https && !cfg.verify_tls)
+    {
+        // Mesmo contrato do `curl -k`: ignora validade do certificado.
+        DWORD ignorar = SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+                              SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
+                              SECURITY_FLAG_IGNORE_CERT_DATE_INVALID |
+                              SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE;
+        WinHttpSetOption(req, WINHTTP_OPTION_SECURITY_FLAGS,
+                         &ignorar, sizeof(ignorar));
+    }
+
+    if (!WinHttpSendRequest(req, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                            WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
+        !WinHttpReceiveResponse(req, nullptr))
+    {
+        error = "WinHTTP: falha na requisicao (" +
+                std::to_string(GetLastError()) + ")";
+        WinHttpCloseHandle(req);
+        WinHttpCloseHandle(conn);
+        WinHttpCloseHandle(sess);
+        return {};
+    }
+
+    DWORD status = 0;
+    DWORD tamanho = sizeof(status);
+    WinHttpQueryHeaders(req,
+                        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                        WINHTTP_HEADER_NAME_BY_INDEX,
+                        &status, &tamanho, WINHTTP_NO_HEADER_INDEX);
+
+    std::string body;
+    bool falha_leitura = false;
+    for (;;)
+    {
+        DWORD disponivel = 0;
+        if (!WinHttpQueryDataAvailable(req, &disponivel))
+        {
+            error = "WinHTTP: falha ao consultar dados (" +
+                    std::to_string(GetLastError()) + ")";
+            falha_leitura = true;
+            break;
+        }
+        if (disponivel == 0)
+            break;
+        std::vector<char> buffer(disponivel);
+        DWORD lido = 0;
+        if (!WinHttpReadData(req, buffer.data(), disponivel, &lido))
+        {
+            error = "WinHTTP: falha ao ler resposta (" +
+                    std::to_string(GetLastError()) + ")";
+            falha_leitura = true;
+            break;
+        }
+        if (lido == 0)
+            break;
+        body.append(buffer.data(), lido);
+    }
+
+    WinHttpCloseHandle(req);
+    WinHttpCloseHandle(conn);
+    WinHttpCloseHandle(sess);
+
+    if (falha_leitura)
+        return {};
+    if (status < 200 || status >= 300)
+    {
+        error = "HTTP " + std::to_string(status);
+        return {};
+    }
+    return body;
+}
+
+#else // POSIX: libcurl
 
 std::string fetch_page(const Config &cfg, std::string &error)
 {
@@ -356,6 +520,7 @@ std::string fetch_page(const Config &cfg, std::string &error)
     }
     return body;
 }
+#endif // _WIN32
 
 // ---------------------------------------------------------------------------
 // Parsing do HTML e extração do IPv4.
