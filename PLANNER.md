@@ -14,11 +14,6 @@ texto via HTTP. O `curl | grep` já entrega praticamente o mesmo resultado; o
 
 ## Escopo
 
-- [x] Verificar as saídas: `get_ip.py` (IPv4) vs `curl | grep` (IPv4/máscara).
-- [x] Criar a pasta `compiled/` na raiz do monorepo e mover o submódulo `codectx`.
-- [x] Implementar `getip` em C++17 (`getip.hpp`, `getip.cpp`, `main.cpp`, `Makefile`).
-- [x] Testes table-driven + sanitizers.
-- [x] Compilar o binário aarch64 e validar contra o roteador real.
 - [ ] Migração futura: substituir o serviço `chromium` por imagem com o binário.
 
 ## Fora de escopo
