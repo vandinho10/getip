@@ -47,6 +47,15 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 - Versão do binário: `1.1.0`.
 
+## [1.0.2] - 2026-08-17
+
+### Adicionado
+
+- CI: pipeline de release **multi-plataforma** via GitHub Actions —
+  cross-compile de `x86_64`, `aarch64` e `arm32` (com jobs Docker+QEMU para
+  builds multiplataforma), viabilizando artefatos Linux para os servidores
+  ARM64 e desktops x86 sem host Docker dedicado.
+
 ## [1.0.1] - 2026-08-16
 
 ### Corrigido
