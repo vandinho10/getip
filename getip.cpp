@@ -306,6 +306,10 @@ void print_help(const char *prog)
         << "  -h, --help             Exibe esta ajuda\n"
         << "  -V, --version          Exibe a versão\n"
         << "\n"
+        << "Subcomandos:\n"
+        << "  config ...             Configuração persistente (getip config --help)\n"
+        << "  update [check]         Atualiza pela última release do GitHub (getip update --help)\n"
+        << "\n"
         << "Variáveis de ambiente: LOG_FILE_PATH, LOG_LEVEL, GETIP_URL.\n";
 }
 

@@ -108,12 +108,33 @@ mantém esse contrato byte a byte (sem quebra de linha). A verificação real fo
 validada contra `curl -sk https://192.168.10.1 | grep -E '...'`, que retorna o
 mesmo endereço com a máscara `203.0.113.42/255.255.255.0`.
 
-## Instalação (uso global)
+## Instalação
+
+Pela última release (confere o `SHA256SUMS` e agenda a autoatualização diária):
 
 ```bash
-sudo make install   # instala em /usr/local/bin/getip
-getip --version
+curl -fsSL https://raw.githubusercontent.com/vandinho10/getip/main/scripts/install.sh | bash
 ```
+
+A partir do código, sem sudo, em `~/.local/bin`:
+
+```bash
+make install                              # ~/.local/bin/getip
+sudo make install BINDIR=/usr/local/bin   # outro destino
+```
+
+## Atualização
+
+```bash
+getip update check   # 0 = atualizado, 2 = há versão nova, 1 = erro
+getip update         # pergunta antes de instalar
+getip update --quiet # sem perguntas; usado pelo getip-update.timer
+```
+
+O binário só é trocado depois de conferir o SHA256 contra o `SHA256SUMS` da
+release; release sem esse arquivo é recusada. O anterior fica em
+`getip.old`, e se o novo não responder a `--version` o anterior volta sozinho.
+`GETIP_UPDATE_REPO=owner/repo` troca a origem (testes).
 
 ## Documentação
 
