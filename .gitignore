@@ -1,6 +1,6 @@
 # Binário compilado
 /getip
-getip-linux-x86_64
+getip-linux-*
 getip.exe
 getip-windows-*.exe
 
