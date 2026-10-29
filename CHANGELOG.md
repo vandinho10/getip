@@ -4,6 +4,26 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-29
+
+### Adicionado
+
+- **`getip update`**: autoatualização pela última release do GitHub
+  (`update check` retorna 0/2/1). O SHA256 é conferido contra o `SHA256SUMS`
+  da release antes da troca e é obrigatório; o binário anterior fica em
+  `.old` e volta sozinho se o novo não responder a `--version`.
+- `scripts/install.sh`: instala em `~/.local/bin` conferindo o `SHA256SUMS` e
+  cria o timer systemd do usuário `getip-update.timer` (diário).
+- `selfupdate.cpp/.hpp`: módulo compartilhado com ddns_manager e invpush
+  (SHA-256 embutido, sem depender de `sha256sum`/`certutil`).
+- CI: a release publica `SHA256SUMS`.
+
+### Alterado
+
+- `make install` instala em `~/.local/bin` por padrão (`BINDIR` muda o destino).
+- Builds Windows com `-Wl,--no-insert-timestamp`, para hashes reprodutíveis.
+- Versão do binário: `1.3.0`.
+
 ## [1.2.0] - 2026-08-22
 
 ### Adicionado
