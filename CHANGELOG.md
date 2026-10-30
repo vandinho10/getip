@@ -4,6 +4,16 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-29
+
+### Corrigido
+
+- Release: o asset `getip-linux-aarch64` da v1.3.0 saiu com o binário 1.2.0.
+  Um `getip-linux-aarch64` antigo estava versionado; os jobs Linux o
+  empacotavam junto (`getip-linux-*`) e ele sobrescrevia o build novo ao
+  juntar os artefatos. O arquivo sai do repositório e o `.gitignore` passa a
+  cobrir `getip-linux-*`.
+
 ## [1.3.0] - 2026-10-29
 
 ### Adicionado
