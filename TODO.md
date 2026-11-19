@@ -2,5 +2,5 @@
 
 ## Coletor C++ (getip)
 
-- [ ] Publicar binário em release do GitHub (semelhante ao `codectx`).
-- [ ] Migrar o serviço `chromium` do `docker-compose.yaml` para imagem com o binário.
+- [x] Publicar binário em release do GitHub (v1.3.1, 2026-11-08).
+- [x] ~~Migrar o serviço `chromium` do `docker-compose.yaml` para imagem com o binário~~ — obsoleto: o serviço `chromium` não existe mais no compose (triagem 2026-11-19).
